@@ -22,8 +22,10 @@ void UDoorInteractionComponent::BeginPlay()
 	Super::BeginPlay();
 
 	StartFacingAngle = GetOwner()->GetActorForwardVector().HeadingAngle();
-	ForwardEndRotation = DesiredRotation;
-	BackwardEndRotation = DesiredRotation.GetInverse();
+	// Assumed door is shut at creation
+	ClosedDoor = GetOwner()->GetActorRotation();
+	ForwardEndRotation = DesiredRotation + ClosedDoor;
+	BackwardEndRotation = DesiredRotation.GetInverse() - ClosedDoor;
 }
 
 
