@@ -41,5 +41,17 @@ protected:
 
 	UPROPERTY(EditAnywhere)
 	FRuntimeFloatCurve OpenCurve;
+
+private:
+	float LocalAngleToPawn(const APawn* PlayerPawn);
+	void DetermineStartEndRotation(const bool OpenForward);
+	void RotateDoor(const float DeltaTime);
+
+	float StartFacingAngle;
+	FRotator ForwardEndRotation;
+	FRotator BackwardEndRotation;
+	FRotator ClosedDoor = FRotator::ZeroRotator;
+	bool DoorDirectionCheck = true;
+	bool DoorOpenForward = true;
 		
 };
