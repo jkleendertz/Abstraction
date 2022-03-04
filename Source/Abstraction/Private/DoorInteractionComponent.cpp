@@ -24,8 +24,9 @@ void UDoorInteractionComponent::BeginPlay()
 	StartFacingAngle = GetOwner()->GetActorForwardVector().HeadingAngle();
 	// Assumed door is shut at creation
 	ClosedDoor = GetOwner()->GetActorRotation();
-	ForwardEndRotation = DesiredRotation + ClosedDoor;
-	BackwardEndRotation = DesiredRotation.GetInverse() - ClosedDoor;
+	ForwardEndRotation = ClosedDoor + DesiredRotation;
+	BackwardEndRotation = ClosedDoor - DesiredRotation;
+	UE_LOG(LogTemp, Warning, TEXT("ForwardEndRotation: %s; BackwardEndRotation %s"), *ForwardEndRotation.ToString(), *BackwardEndRotation.ToString());
 }
 
 
@@ -68,9 +69,12 @@ float UDoorInteractionComponent::LocalAngleToPawn(const APawn* PlayerPawn)
 void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward)
 {
 	StartRotation = GetOwner()->GetActorRotation();
+	float DeltaDoorClosed = FMath::Abs(StartRotation.Yaw - ClosedDoor.Yaw);
 	if (OpenForward)
 	{
-		if (StartRotation.Yaw < 0.0f)
+		float DeltaForwardOpenDoor = FMath::Abs(StartRotation.Yaw - ForwardEndRotation.Yaw);
+		UE_LOG(LogTemp, Warning, TEXT("DeltaDoorClosed: %f; DeltaForwardOpenDoor %f"), DeltaDoorClosed, DeltaForwardOpenDoor);
+		if (DeltaForwardOpenDoor < DeltaDoorClosed || StartRotation.Equals(BackwardEndRotation, 5.0f))
 		{
 			EndRotation = ClosedDoor;
 		}
@@ -81,7 +85,9 @@ void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward
 	}
 	else
 	{
-		if (StartRotation.Yaw > 0 )
+		float DeltaBackwardOpenDoor = FMath::Abs(StartRotation.Yaw - BackwardEndRotation.Yaw);
+		UE_LOG(LogTemp, Warning, TEXT("DeltaDoorClosed: %f; DeltaBackwardOpenDoor %f"), DeltaDoorClosed, DeltaBackwardOpenDoor);
+		if (DeltaBackwardOpenDoor < DeltaDoorClosed || StartRotation.Equals(ForwardEndRotation, 5.0f))
 		{
 			EndRotation = ClosedDoor;
 		}
@@ -91,6 +97,7 @@ void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward
 		}
 	}
 	CurrentRotationTime = 0.0f;
+	UE_LOG(LogTemp, Warning, TEXT("StartRotation: %s; EndRotation %s"), *StartRotation.ToString(), *EndRotation.ToString());
 }
 
 
@@ -105,4 +112,3 @@ void UDoorInteractionComponent::RotateDoor(const float DeltaTime)
 		GetOwner()->SetActorRelativeRotation(CurrentRotation);
 	}
 }
-
