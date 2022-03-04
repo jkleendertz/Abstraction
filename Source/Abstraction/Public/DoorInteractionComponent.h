@@ -42,6 +42,9 @@ protected:
 	UPROPERTY(EditAnywhere)
 	FRuntimeFloatCurve OpenCurve;
 
+	UPROPERTY(EditAnywhere)
+	bool Debug = false;
+
 private:
 	float LocalAngleToPawn(const APawn* PlayerPawn);
 	void DetermineStartEndRotation(const bool OpenForward);
@@ -52,6 +55,5 @@ private:
 	FRotator BackwardEndRotation;
 	FRotator ClosedDoor = FRotator::ZeroRotator;
 	bool DoorDirectionCheck = true;
-	bool DoorOpenForward = true;
 		
 };

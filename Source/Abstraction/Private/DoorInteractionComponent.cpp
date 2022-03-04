@@ -21,13 +21,20 @@ void UDoorInteractionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	StartFacingAngle = GetOwner()->GetActorForwardVector().HeadingAngle();
 	// Assumed door is shut at creation
 	ClosedDoor = GetOwner()->GetActorRotation();
 	ForwardEndRotation = ClosedDoor + DesiredRotation;
 	ForwardEndRotation.Normalize();
 	BackwardEndRotation = ClosedDoor - DesiredRotation;
 	BackwardEndRotation.Normalize();
+	StartFacingAngle = GetOwner()->GetActorForwardVector().HeadingAngle();
+	if (Debug)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ClosedDoor: %s"), *ClosedDoor.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("ForwardEndRotation: %s"), *ForwardEndRotation.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("BackwardEndRotation: %s"), *BackwardEndRotation.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("StartFacingAngle: %f"), StartFacingAngle);
+	}
 }
 
 
@@ -44,12 +51,17 @@ void UDoorInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 			float FromActorToPawnAngle = LocalAngleToPawn(PlayerPawn);
 			if (DoorDirectionCheck)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("FromActorToPawnAngle: %f"), FMath::RadiansToDegrees(FromActorToPawnAngle));
-				FromActorToPawnAngle < StartFacingAngle
-					? DoorOpenForward = true 
-					: DoorOpenForward = false;
+				if (Debug)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("FromActorToPawnAngle: %f"), FMath::RadiansToDegrees(FromActorToPawnAngle));
+				}
+				bool OpenForward = false;
+				if (FromActorToPawnAngle < StartFacingAngle)
+				{
+					OpenForward = true;
+				}
 				DoorDirectionCheck = false;
-				DetermineStartEndRotation(DoorOpenForward);
+				DetermineStartEndRotation(OpenForward);
 			}
 			RotateDoor(DeltaTime);
 		}
@@ -71,13 +83,21 @@ float UDoorInteractionComponent::LocalAngleToPawn(const APawn* PlayerPawn)
 void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward)
 {
 	StartRotation = GetOwner()->GetActorRotation();
-	UE_LOG(LogTemp, Warning, TEXT("Current Rotation: %s"), *StartRotation.ToString());
+	if (Debug)
+	{
+		FString Direction = OpenForward ? FString("Openging Door") : FString("Closing Door");
+		UE_LOG(LogTemp, Warning, TEXT("%s"), *Direction);
+		UE_LOG(LogTemp, Warning, TEXT("Current Rotation: %s"), *StartRotation.ToString());
+	}
 	float DeltaDoorClosed = FMath::Abs(StartRotation.Yaw - ClosedDoor.Yaw);
 	if (OpenForward)
 	{
 		float DeltaForwardOpenDoor = FMath::Abs(StartRotation.Yaw - ForwardEndRotation.Yaw);
-		UE_LOG(LogTemp, Warning, TEXT("DeltaDoorClosed: %f; DeltaForwardOpenDoor %f"), DeltaDoorClosed, DeltaForwardOpenDoor);
-		if (DeltaDoorClosed > DeltaForwardOpenDoor || StartRotation.Equals(BackwardEndRotation, 5.0f))
+		if (Debug)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DeltaDoorClosed: %f; DeltaForwardOpenDoor %f"), DeltaDoorClosed, DeltaForwardOpenDoor);
+		}
+		if (DeltaDoorClosed < DeltaForwardOpenDoor && !StartRotation.Equals(ClosedDoor, 5.0f) || StartRotation.Equals(ForwardEndRotation, 5.0f))
 		{
 			EndRotation = ClosedDoor;
 		}
@@ -89,8 +109,11 @@ void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward
 	else
 	{
 		float DeltaBackwardOpenDoor = FMath::Abs(StartRotation.Yaw - BackwardEndRotation.Yaw);
-		UE_LOG(LogTemp, Warning, TEXT("DeltaDoorClosed: %f; DeltaBackwardOpenDoor %f"), DeltaDoorClosed, DeltaBackwardOpenDoor);
-		if (DeltaDoorClosed > DeltaBackwardOpenDoor || StartRotation.Equals(ForwardEndRotation, 5.0f))
+		if (Debug)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DeltaDoorClosed: %f; DeltaBackwardOpenDoor %f"), DeltaDoorClosed, DeltaBackwardOpenDoor);
+		}
+		if (DeltaDoorClosed < DeltaBackwardOpenDoor && !StartRotation.Equals(ClosedDoor, 5.0f) || StartRotation.Equals(BackwardEndRotation, 5.0f))
 		{
 			EndRotation = ClosedDoor;
 		}
@@ -100,7 +123,10 @@ void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward
 		}
 	}
 	CurrentRotationTime = 0.0f;
-	UE_LOG(LogTemp, Warning, TEXT("StartRotation: %s; EndRotation %s"), *StartRotation.ToString(), *EndRotation.ToString());
+	if (Debug)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("StartRotation: %s; EndRotation %s"), *StartRotation.ToString(), *EndRotation.ToString());
+	}
 }
 
 
