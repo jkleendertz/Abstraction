@@ -25,8 +25,9 @@ void UDoorInteractionComponent::BeginPlay()
 	// Assumed door is shut at creation
 	ClosedDoor = GetOwner()->GetActorRotation();
 	ForwardEndRotation = ClosedDoor + DesiredRotation;
+	ForwardEndRotation.Normalize();
 	BackwardEndRotation = ClosedDoor - DesiredRotation;
-	UE_LOG(LogTemp, Warning, TEXT("ForwardEndRotation: %s; BackwardEndRotation %s"), *ForwardEndRotation.ToString(), *BackwardEndRotation.ToString());
+	BackwardEndRotation.Normalize();
 }
 
 
@@ -43,9 +44,10 @@ void UDoorInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 			float FromActorToPawnAngle = LocalAngleToPawn(PlayerPawn);
 			if (DoorDirectionCheck)
 			{
-				FromActorToPawnAngle > 0 
-					? DoorOpenForward = false 
-					: DoorOpenForward = true;
+				UE_LOG(LogTemp, Warning, TEXT("FromActorToPawnAngle: %f"), FMath::RadiansToDegrees(FromActorToPawnAngle));
+				FromActorToPawnAngle < StartFacingAngle
+					? DoorOpenForward = true 
+					: DoorOpenForward = false;
 				DoorDirectionCheck = false;
 				DetermineStartEndRotation(DoorOpenForward);
 			}
@@ -62,19 +64,20 @@ void UDoorInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 float UDoorInteractionComponent::LocalAngleToPawn(const APawn* PlayerPawn)
 {
 	const FVector FromActorToPawn = GetOwner()->GetActorLocation() - PlayerPawn->GetPawnViewLocation();
-	return FromActorToPawn.HeadingAngle() - StartFacingAngle;
+	return FromActorToPawn.HeadingAngle();
 }
 
 
 void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward)
 {
 	StartRotation = GetOwner()->GetActorRotation();
+	UE_LOG(LogTemp, Warning, TEXT("Current Rotation: %s"), *StartRotation.ToString());
 	float DeltaDoorClosed = FMath::Abs(StartRotation.Yaw - ClosedDoor.Yaw);
 	if (OpenForward)
 	{
 		float DeltaForwardOpenDoor = FMath::Abs(StartRotation.Yaw - ForwardEndRotation.Yaw);
 		UE_LOG(LogTemp, Warning, TEXT("DeltaDoorClosed: %f; DeltaForwardOpenDoor %f"), DeltaDoorClosed, DeltaForwardOpenDoor);
-		if (DeltaForwardOpenDoor < DeltaDoorClosed || StartRotation.Equals(BackwardEndRotation, 5.0f))
+		if (DeltaDoorClosed > DeltaForwardOpenDoor || StartRotation.Equals(BackwardEndRotation, 5.0f))
 		{
 			EndRotation = ClosedDoor;
 		}
@@ -87,7 +90,7 @@ void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward
 	{
 		float DeltaBackwardOpenDoor = FMath::Abs(StartRotation.Yaw - BackwardEndRotation.Yaw);
 		UE_LOG(LogTemp, Warning, TEXT("DeltaDoorClosed: %f; DeltaBackwardOpenDoor %f"), DeltaDoorClosed, DeltaBackwardOpenDoor);
-		if (DeltaBackwardOpenDoor < DeltaDoorClosed || StartRotation.Equals(ForwardEndRotation, 5.0f))
+		if (DeltaDoorClosed > DeltaBackwardOpenDoor || StartRotation.Equals(ForwardEndRotation, 5.0f))
 		{
 			EndRotation = ClosedDoor;
 		}
