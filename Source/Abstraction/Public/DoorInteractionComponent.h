@@ -8,6 +8,15 @@
 #include "DoorInteractionComponent.generated.h"
 
 class ATriggerBox;
+class IConsoleVariable;
+
+UENUM()
+enum class EDoorState
+{
+	DS_Closed_Closing UMETA(DisplayName = "Door Closed/Closing"),
+	DS_Open_Opening_Forward UMETA(DisplayName = "Door Open/Opening Forward"),
+	DS_Open_Opening_Backward  UMETA(DisplayName = "Door Open/Opening Backward")
+};
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ABSTRACTION_API UDoorInteractionComponent : public UActorComponent
@@ -20,6 +29,8 @@ public:
 
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	static void OnDebugToggled(IConsoleVariable* var);
 
 protected:
 	// Called when the game starts
@@ -45,6 +56,9 @@ protected:
 	UPROPERTY(EditAnywhere)
 	bool Debug = false;
 
+	UPROPERTY(BlueprintReadOnly)
+	EDoorState DoorState;
+
 private:
 	// Calulates the angle in +/-PI from actor root location to Pawn eye height.
 	// The actor starting position offset is used to ensure the X 0 coordinate line
@@ -66,10 +80,11 @@ private:
 	// Rotates the door
 	void RotateDoor(const float DeltaTime);
 
+	void DebugDraw();
+
 	float ActorFacingAngleOffset;
 	FRotator ForwardEndRotation;
 	FRotator BackwardEndRotation;
 	FRotator ClosedDoor = FRotator::ZeroRotator;
 	bool DoorDirectionCheck = true;
-		
 };

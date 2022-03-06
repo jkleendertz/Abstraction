@@ -7,14 +7,24 @@
 #include <Engine/TriggerBox.h>
 #include <Engine/World.h>
 
+#include <DrawDebugHelpers.h>
+
+constexpr float FLT_METERS(float meters) { return meters * 100.0f; }
+
+static TAutoConsoleVariable<bool> CVarToggleDebugDoor(
+	TEXT("Abstraction.DoorInteractionComponent.Debug"),
+	false,
+	TEXT("Toggle DoorInteractionComponent debug display"),
+	ECVF_Default);
+
 // Sets default values for this component's properties
 UDoorInteractionComponent::UDoorInteractionComponent()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
+	CVarToggleDebugDoor.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&UDoorInteractionComponent::OnDebugToggled));
 }
-
 
 // Called when the game starts
 void UDoorInteractionComponent::BeginPlay()
@@ -22,6 +32,7 @@ void UDoorInteractionComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// Assumed door is shut at creation
+	DoorState = EDoorState::DS_Closed_Closing;
 	ClosedDoor = GetOwner()->GetActorRotation();
 	ForwardEndRotation = ClosedDoor + DesiredRotation;
 	ForwardEndRotation.Normalize();
@@ -37,7 +48,6 @@ void UDoorInteractionComponent::BeginPlay()
 		UE_LOG(LogTemp, Warning, TEXT("StartFacingAngle: %f"), FMath::RadiansToDegrees(ActorFacingAngleOffset));
 	}
 }
-
 
 // Called every frame
 void UDoorInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -73,8 +83,13 @@ void UDoorInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 			DoorDirectionCheck = true;
 		}
 	}
+	DebugDraw();
 }
 
+void UDoorInteractionComponent::OnDebugToggled(IConsoleVariable* var)
+{
+	UE_LOG(LogTemp, Warning, TEXT("OnDebugToggled"));
+}
 
 float UDoorInteractionComponent::LocalAngleToPawn(const APawn* PlayerPawn)
 {
@@ -86,7 +101,6 @@ float UDoorInteractionComponent::LocalAngleToPawn(const APawn* PlayerPawn)
 	// Atan2(Y, X) = [-PI <= 0 <= PI]
 	return FMath::Atan2(FMath::Sin(ActorToPawnAngle), FMath::Cos(ActorToPawnAngle));
 }
-
 
 void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward)
 {
@@ -111,10 +125,12 @@ void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward
 
 		if (FMath::Abs(DeltaDoorClosed.Yaw) < FMath::Abs(DeltaForwardOpenDoor.Yaw) && !StartRotation.Equals(ClosedDoor, 5.0f) || StartRotation.Equals(ForwardEndRotation, 5.0f))
 		{
+			DoorState = EDoorState::DS_Closed_Closing;
 			EndRotation = ClosedDoor;
 		}
 		else
 		{
+			DoorState = EDoorState::DS_Open_Opening_Forward;
 			EndRotation = ForwardEndRotation;
 		}
 	}
@@ -129,10 +145,12 @@ void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward
 
 		if (FMath::Abs(DeltaDoorClosed.Yaw) < FMath::Abs(DeltaBackwardOpenDoor.Yaw) && !StartRotation.Equals(ClosedDoor, 5.0f) || StartRotation.Equals(BackwardEndRotation, 5.0f))
 		{
+			DoorState = EDoorState::DS_Closed_Closing;
 			EndRotation = ClosedDoor;
 		}
 		else
 		{
+			DoorState = EDoorState::DS_Open_Opening_Backward;
 			EndRotation = BackwardEndRotation;
 		}
 	}
@@ -144,7 +162,6 @@ void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward
 	}
 }
 
-
 void UDoorInteractionComponent::RotateDoor(const float DeltaTime)
 {
 	if (CurrentRotationTime < TimeToRotate)
@@ -154,5 +171,15 @@ void UDoorInteractionComponent::RotateDoor(const float DeltaTime)
 		const float RotationAlpha = OpenCurve.GetRichCurveConst()->Eval(TimeRatio);
 		const FRotator CurrentRotation = FMath::Lerp(StartRotation, EndRotation, RotationAlpha);
 		GetOwner()->SetActorRelativeRotation(CurrentRotation);
+	}
+}
+
+void UDoorInteractionComponent::DebugDraw()
+{
+	if (CVarToggleDebugDoor->GetBool())
+	{
+		FVector Offset(0.0f, 0.0f, FLT_METERS(2.5f));
+		FString EnumAsString = TEXT("Door State: ") + UEnum::GetDisplayValueAsText(DoorState).ToString();
+		DrawDebugString(GetWorld(), Offset, EnumAsString, GetOwner(), FColor::Blue, 0.0f);
 	}
 }
