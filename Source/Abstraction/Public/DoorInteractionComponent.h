@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <Blueprint/UserWidget.h>
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include <Curves/CurveFloat.h>
@@ -16,6 +17,20 @@ enum class EDoorState
 	DS_Closed_Closing UMETA(DisplayName = "Door Closed/Closing"),
 	DS_Open_Opening_Forward UMETA(DisplayName = "Door Open/Opening Forward"),
 	DS_Open_Opening_Backward  UMETA(DisplayName = "Door Open/Opening Backward")
+};
+
+struct LocalCoor
+{
+	float mTheta = 0.0f;
+	float mXDelta = 0.0f;
+	float mYDelta = 0.0f;
+
+	LocalCoor(float Theta, float X, float Y)
+	{
+		mTheta = Theta;
+		mXDelta = X;
+		mYDelta = Y;
+	}
 };
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -59,12 +74,15 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	EDoorState DoorState;
 
+	UFUNCTION()
+	void OnBeginOverlap(AActor* OverlappedActor, AActor* OtherActor);
+
 private:
 	// Calulates the angle in +/-PI from actor root location to Pawn eye height.
 	// The actor starting position offset is used to ensure the X 0 coordinate line
 	// is inline with the rotation of the actor.
 	// @param PlayerPawn A pawn pointer that is within the TriggerBox
-	float LocalAngleToPawn(const APawn* PlayerPawn);
+	LocalCoor LocalAngleToPawn(const APawn* PlayerPawn);
 
 	// Determines the start and end rotation of the door. This will be the direction
 	// to the closeset end state. 

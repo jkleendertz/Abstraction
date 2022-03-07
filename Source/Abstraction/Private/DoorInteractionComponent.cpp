@@ -31,6 +31,11 @@ void UDoorInteractionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (TriggerBox)
+	{
+		TriggerBox->OnActorBeginOverlap.AddDynamic(this, &UDoorInteractionComponent::OnBeginOverlap);
+	}
+
 	// Assumed door is shut at creation
 	DoorState = EDoorState::DS_Closed_Closing;
 	ClosedDoor = GetOwner()->GetActorRotation();
@@ -59,7 +64,7 @@ void UDoorInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 		APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
 		if (PlayerPawn && TriggerBox->IsOverlappingActor(PlayerPawn))
 		{
-			float FromActorToPawnAngle = LocalAngleToPawn(PlayerPawn);
+			float FromActorToPawnAngle = LocalAngleToPawn(PlayerPawn).mTheta;
 			if (DoorDirectionCheck)
 			{
 				if (Debug)
@@ -91,15 +96,36 @@ void UDoorInteractionComponent::OnDebugToggled(IConsoleVariable* var)
 	UE_LOG(LogTemp, Warning, TEXT("OnDebugToggled"));
 }
 
-float UDoorInteractionComponent::LocalAngleToPawn(const APawn* PlayerPawn)
+void UDoorInteractionComponent::OnBeginOverlap(AActor* OverlappedActor, AActor* OtherActor)
+{
+	if (GetWorld())
+	{
+		APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
+		if (OverlappedActor && OtherActor != TriggerBox && GetWorld() && OtherActor == PlayerPawn)
+		{
+			LocalCoor RelativeCoor = LocalAngleToPawn(PlayerPawn);
+			float OffsetY, OffsetX;
+			RelativeCoor.mYDelta > 0 ? OffsetY = FLT_METERS(0.2f) : OffsetY = FLT_METERS(-0.2f);
+			RelativeCoor.mXDelta > 0 ? OffsetX = FLT_METERS(0.2f) : OffsetX = FLT_METERS(-0.2f);
+			FVector Offset(OffsetX, OffsetY, FLT_METERS(0.8f));
+			DrawDebugString(GetWorld(), Offset, TEXT("Interact"), GetOwner(), FColor::Blue, 1.5f);
+		}
+	}
+
+}
+
+LocalCoor UDoorInteractionComponent::LocalAngleToPawn(const APawn* PlayerPawn)
 {
 	const FVector ActorToPawn = PlayerPawn->GetPawnViewLocation() - GetOwner()->GetActorLocation();
 	// Consider StartFacingAngle 0 Deg
 	float ActorToPawnAngle = ActorToPawn.HeadingAngle() - ActorFacingAngleOffset;
 	// 1 * Sin(Angle) = Y
+	float Y = FMath::Sin(ActorToPawnAngle);
 	// 1 * Cos(Angle) = X
+	float X = FMath::Cos(ActorToPawnAngle);
 	// Atan2(Y, X) = [-PI <= 0 <= PI]
-	return FMath::Atan2(FMath::Sin(ActorToPawnAngle), FMath::Cos(ActorToPawnAngle));
+	float Theta = FMath::Atan2(Y, X);
+	return LocalCoor(Theta, X, Y);
 }
 
 void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward)
