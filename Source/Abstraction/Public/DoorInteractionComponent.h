@@ -12,20 +12,31 @@ class ATriggerBox;
 class IConsoleVariable;
 
 UENUM()
-enum class EDoorState
+enum class EInteractionState
 {
-	DS_Closed_Closing UMETA(DisplayName = "Door Closed/Closing"),
-	DS_Open_Opening_Forward UMETA(DisplayName = "Door Open/Opening Forward"),
-	DS_Open_Opening_Backward  UMETA(DisplayName = "Door Open/Opening Backward")
+	IS_Valid UMETA(DisplayName = "Valid"),
+	IS_Invalid UMETA(DisplayName = "Invalid")
 };
 
-struct LocalCoor
+UENUM()
+enum class EDoorState
+{
+	DS_Closed UMETA(DisplayName = "Closed"),
+	DS_Closing UMETA(DisplayName = "Closing"),
+	DS_Open_Forward UMETA(DisplayName = "Open Forward"),
+	DS_Opening_Forward UMETA(DisplayName = "Opening Forward"),
+	DS_OpenBackward  UMETA(DisplayName = "OpenBackward"),
+	DS_Opening_Backward  UMETA(DisplayName = "Opening Backward")
+};
+
+
+struct FLocalCoor
 {
 	float mTheta = 0.0f;
 	float mXDelta = 0.0f;
 	float mYDelta = 0.0f;
 
-	LocalCoor(float Theta, float X, float Y)
+	FLocalCoor(float Theta, float X, float Y)
 	{
 		mTheta = Theta;
 		mXDelta = X;
@@ -74,15 +85,25 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	EDoorState DoorState;
 
+	UPROPERTY(BlueprintReadOnly)
+	EInteractionState InteractionState;
+
 	UFUNCTION()
 	void OnBeginOverlap(AActor* OverlappedActor, AActor* OtherActor);
 
+	UFUNCTION()
+	void OnEndOverlap(AActor* OverlappedActor, AActor* OtherActor);
+
 private:
+
+	// Sets relevant private variables for door to function per UPROPERTY settings.
+	void InitializeDoor();
+
 	// Calulates the angle in +/-PI from actor root location to Pawn eye height.
 	// The actor starting position offset is used to ensure the X 0 coordinate line
 	// is inline with the rotation of the actor.
 	// @param PlayerPawn A pawn pointer that is within the TriggerBox
-	LocalCoor LocalAngleToPawn(const APawn* PlayerPawn);
+	FLocalCoor LocalAngleToPawn(const APawn* PlayerPawn);
 
 	// Determines the start and end rotation of the door. This will be the direction
 	// to the closeset end state. 

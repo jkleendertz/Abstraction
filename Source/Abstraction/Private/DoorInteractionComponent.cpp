@@ -31,26 +31,12 @@ void UDoorInteractionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	InitializeDoor();
+
 	if (TriggerBox)
 	{
 		TriggerBox->OnActorBeginOverlap.AddDynamic(this, &UDoorInteractionComponent::OnBeginOverlap);
-	}
-
-	// Assumed door is shut at creation
-	DoorState = EDoorState::DS_Closed_Closing;
-	ClosedDoor = GetOwner()->GetActorRotation();
-	ForwardEndRotation = ClosedDoor + DesiredRotation;
-	ForwardEndRotation.Normalize();
-	BackwardEndRotation = ClosedDoor - DesiredRotation;
-	BackwardEndRotation.Normalize();
-	ActorFacingAngleOffset = GetOwner()->GetActorForwardVector().HeadingAngle();
-
-	if (Debug)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ClosedDoor: %s"), *ClosedDoor.ToString());
-		UE_LOG(LogTemp, Warning, TEXT("ForwardEndRotation: %s"), *ForwardEndRotation.ToString());
-		UE_LOG(LogTemp, Warning, TEXT("BackwardEndRotation: %s"), *BackwardEndRotation.ToString());
-		UE_LOG(LogTemp, Warning, TEXT("StartFacingAngle: %f"), FMath::RadiansToDegrees(ActorFacingAngleOffset));
+		TriggerBox->OnActorEndOverlap.AddDynamic(this, &UDoorInteractionComponent::OnEndOverlap);
 	}
 }
 
@@ -59,10 +45,10 @@ void UDoorInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (TriggerBox && GetWorld() && GetWorld()->GetFirstLocalPlayerFromController())
+	if (InteractionState == EInteractionState::IS_Valid)
 	{
 		APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
-		if (PlayerPawn && TriggerBox->IsOverlappingActor(PlayerPawn))
+		if (PlayerPawn)
 		{
 			float FromActorToPawnAngle = LocalAngleToPawn(PlayerPawn).mTheta;
 			if (DoorDirectionCheck)
@@ -83,10 +69,10 @@ void UDoorInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 			}
 			RotateDoor(DeltaTime);
 		}
-		else if(!DoorDirectionCheck)
-		{
-			DoorDirectionCheck = true;
-		}
+	}
+	else if (!DoorDirectionCheck)
+	{
+		DoorDirectionCheck = true;
 	}
 	DebugDraw();
 }
@@ -101,9 +87,12 @@ void UDoorInteractionComponent::OnBeginOverlap(AActor* OverlappedActor, AActor* 
 	if (GetWorld())
 	{
 		APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
-		if (OverlappedActor && OtherActor != TriggerBox && GetWorld() && OtherActor == PlayerPawn)
+		if (OverlappedActor && OtherActor != TriggerBox && PlayerPawn && OtherActor == PlayerPawn)
 		{
-			LocalCoor RelativeCoor = LocalAngleToPawn(PlayerPawn);
+			InteractionState = EInteractionState::IS_Valid;
+
+			// Replace with widget
+			FLocalCoor RelativeCoor = LocalAngleToPawn(PlayerPawn);
 			float OffsetY, OffsetX;
 			RelativeCoor.mYDelta > 0 ? OffsetY = FLT_METERS(0.2f) : OffsetY = FLT_METERS(-0.2f);
 			RelativeCoor.mXDelta > 0 ? OffsetX = FLT_METERS(0.2f) : OffsetX = FLT_METERS(-0.2f);
@@ -111,10 +100,44 @@ void UDoorInteractionComponent::OnBeginOverlap(AActor* OverlappedActor, AActor* 
 			DrawDebugString(GetWorld(), Offset, TEXT("Interact"), GetOwner(), FColor::Blue, 1.5f);
 		}
 	}
-
 }
 
-LocalCoor UDoorInteractionComponent::LocalAngleToPawn(const APawn* PlayerPawn)
+void UDoorInteractionComponent::OnEndOverlap(AActor* OverlappedActor, AActor* OtherActor)
+{
+	if (GetWorld())
+	{
+		APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
+		if (OverlappedActor && OtherActor != TriggerBox && PlayerPawn && OtherActor == PlayerPawn)
+		{
+			InteractionState = EInteractionState::IS_Invalid;
+
+			// Remove widget if exists
+		}
+	}
+}
+
+void UDoorInteractionComponent::InitializeDoor()
+{
+	// Assumed door is shut at creation
+	InteractionState = EInteractionState::IS_Invalid;
+	DoorState = EDoorState::DS_Closed;
+	ClosedDoor = GetOwner()->GetActorRotation();
+	ForwardEndRotation = ClosedDoor + DesiredRotation;
+	ForwardEndRotation.Normalize();
+	BackwardEndRotation = ClosedDoor - DesiredRotation;
+	BackwardEndRotation.Normalize();
+	ActorFacingAngleOffset = GetOwner()->GetActorForwardVector().HeadingAngle();
+
+	if (Debug)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ClosedDoor: %s"), *ClosedDoor.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("ForwardEndRotation: %s"), *ForwardEndRotation.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("BackwardEndRotation: %s"), *BackwardEndRotation.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("StartFacingAngle: %f"), FMath::RadiansToDegrees(ActorFacingAngleOffset));
+	}
+}
+
+FLocalCoor UDoorInteractionComponent::LocalAngleToPawn(const APawn* PlayerPawn)
 {
 	const FVector ActorToPawn = PlayerPawn->GetPawnViewLocation() - GetOwner()->GetActorLocation();
 	// Consider StartFacingAngle 0 Deg
@@ -125,7 +148,7 @@ LocalCoor UDoorInteractionComponent::LocalAngleToPawn(const APawn* PlayerPawn)
 	float X = FMath::Cos(ActorToPawnAngle);
 	// Atan2(Y, X) = [-PI <= 0 <= PI]
 	float Theta = FMath::Atan2(Y, X);
-	return LocalCoor(Theta, X, Y);
+	return FLocalCoor(Theta, X, Y);
 }
 
 void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward)
@@ -151,12 +174,12 @@ void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward
 
 		if (FMath::Abs(DeltaDoorClosed.Yaw) < FMath::Abs(DeltaForwardOpenDoor.Yaw) && !StartRotation.Equals(ClosedDoor, 5.0f) || StartRotation.Equals(ForwardEndRotation, 5.0f))
 		{
-			DoorState = EDoorState::DS_Closed_Closing;
+			DoorState = EDoorState::DS_Closed;
 			EndRotation = ClosedDoor;
 		}
 		else
 		{
-			DoorState = EDoorState::DS_Open_Opening_Forward;
+			DoorState = EDoorState::DS_Opening_Forward;
 			EndRotation = ForwardEndRotation;
 		}
 	}
@@ -171,12 +194,12 @@ void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward
 
 		if (FMath::Abs(DeltaDoorClosed.Yaw) < FMath::Abs(DeltaBackwardOpenDoor.Yaw) && !StartRotation.Equals(ClosedDoor, 5.0f) || StartRotation.Equals(BackwardEndRotation, 5.0f))
 		{
-			DoorState = EDoorState::DS_Closed_Closing;
+			DoorState = EDoorState::DS_Closed;
 			EndRotation = ClosedDoor;
 		}
 		else
 		{
-			DoorState = EDoorState::DS_Open_Opening_Backward;
+			DoorState = EDoorState::DS_Opening_Backward;
 			EndRotation = BackwardEndRotation;
 		}
 	}
