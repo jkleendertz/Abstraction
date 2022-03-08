@@ -64,7 +64,7 @@ void UDoorInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 				DoorDirectionCheck = false;
 				DetermineStartEndRotation(OpenForward);
 			}
-			RotateDoor(DeltaTime);
+			DetermineDoorState(RotateDoor(DeltaTime));
 		}
 	}
 	else if (!DoorDirectionCheck)
@@ -112,6 +112,7 @@ void UDoorInteractionComponent::OnEndOverlap(AActor* OverlappedActor, AActor* Ot
 	}
 }
 
+/* PRIVATE FUNCTIONS */
 void UDoorInteractionComponent::InitializeDoor()
 {
 	// Assumed door is shut at creation
@@ -159,7 +160,6 @@ void UDoorInteractionComponent::OnInteract()
 {
 	if (TriggerState == ETriggerState::TS_Inside)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, TEXT("On Interact Inside"));
 		switch (InteractionState)
 		{
 		case EInteractionState::IS_Invalid:
@@ -173,10 +173,6 @@ void UDoorInteractionComponent::OnInteract()
 		}
 		FString EnumAsString = TEXT("Interaction State: ") + UEnum::GetDisplayValueAsText(InteractionState).ToString();
 		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, EnumAsString);
-	}
-	else
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, TEXT("On Interact OutSide"));
 	}
 }
 
@@ -217,12 +213,10 @@ void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward
 
 		if (FMath::Abs(DeltaDoorClosed.Yaw) < FMath::Abs(DeltaForwardOpenDoor.Yaw) && !StartRotation.Equals(ClosedDoor, 5.0f) || StartRotation.Equals(ForwardEndRotation, 5.0f))
 		{
-			DoorState = EDoorState::DS_Closed;
 			EndRotation = ClosedDoor;
 		}
 		else
 		{
-			DoorState = EDoorState::DS_Opening_Forward;
 			EndRotation = ForwardEndRotation;
 		}
 	}
@@ -237,12 +231,10 @@ void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward
 
 		if (FMath::Abs(DeltaDoorClosed.Yaw) < FMath::Abs(DeltaBackwardOpenDoor.Yaw) && !StartRotation.Equals(ClosedDoor, 5.0f) || StartRotation.Equals(BackwardEndRotation, 5.0f))
 		{
-			DoorState = EDoorState::DS_Closed;
 			EndRotation = ClosedDoor;
 		}
 		else
 		{
-			DoorState = EDoorState::DS_Opening_Backward;
 			EndRotation = BackwardEndRotation;
 		}
 	}
@@ -254,8 +246,9 @@ void UDoorInteractionComponent::DetermineStartEndRotation(const bool OpenForward
 	}
 }
 
-void UDoorInteractionComponent::RotateDoor(const float DeltaTime)
+bool UDoorInteractionComponent::RotateDoor(const float DeltaTime)
 {
+	bool ActivelyRotatingDoor = false;
 	if (CurrentRotationTime < TimeToRotate)
 	{
 		CurrentRotationTime += DeltaTime;
@@ -263,6 +256,33 @@ void UDoorInteractionComponent::RotateDoor(const float DeltaTime)
 		const float RotationAlpha = OpenCurve.GetRichCurveConst()->Eval(TimeRatio);
 		const FRotator CurrentRotation = FMath::Lerp(StartRotation, EndRotation, RotationAlpha);
 		GetOwner()->SetActorRelativeRotation(CurrentRotation);
+		ActivelyRotatingDoor = true;
+	}
+	return ActivelyRotatingDoor;
+}
+
+void UDoorInteractionComponent::DetermineDoorState(bool ActivelyRotatingDoor)
+{
+	if (!ActivelyRotatingDoor)
+	{
+		InteractionState = EInteractionState::IS_Invalid;
+		FRotator CurrentRotation = GetOwner()->GetActorRotation();
+		if (CurrentRotation.Equals(ClosedDoor, 5.0f))
+		{
+			DoorState = EDoorState::DS_Closed;
+		}
+		else if (CurrentRotation.Equals(ForwardEndRotation, 5.0f))
+		{
+			DoorState = EDoorState::DS_Open_Forward;
+		}
+		else
+		{
+			DoorState = EDoorState::DS_OpenBackward;
+		}
+	}
+	else if (DoorState != EDoorState::DS_Moving)
+	{
+		DoorState = EDoorState::DS_Moving;
 	}
 }
 

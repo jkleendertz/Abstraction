@@ -29,11 +29,9 @@ UENUM()
 enum class EDoorState
 {
 	DS_Closed UMETA(DisplayName = "Closed"),
-	DS_Closing UMETA(DisplayName = "Closing"),
 	DS_Open_Forward UMETA(DisplayName = "Open Forward"),
-	DS_Opening_Forward UMETA(DisplayName = "Opening Forward"),
 	DS_OpenBackward  UMETA(DisplayName = "OpenBackward"),
-	DS_Opening_Backward  UMETA(DisplayName = "Opening Backward")
+	DS_Moving  UMETA(DisplayName = "Moving")
 };
 
 
@@ -132,8 +130,10 @@ private:
 	// The actor's start facing angle is used as the reference of 0 deg
 	void DetermineStartEndRotation(const bool OpenForward);
 
-	// Rotates the door
-	void RotateDoor(const float DeltaTime);
+	// Rotates the door and returns true if actively rotating door
+	bool RotateDoor(const float DeltaTime);
+
+	void DetermineDoorState(bool ActivelyRotatingDoor);
 
 	void DebugDraw();
 
