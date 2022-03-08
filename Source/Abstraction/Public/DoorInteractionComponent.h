@@ -19,6 +19,13 @@ enum class EInteractionState
 };
 
 UENUM()
+enum class ETriggerState
+{
+	TS_Inside UMETA(DisplayName = "Inside"),
+	TS_Outside UMETA(DisplayName = "Outside")
+};
+
+UENUM()
 enum class EDoorState
 {
 	DS_Closed UMETA(DisplayName = "Closed"),
@@ -88,6 +95,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	EInteractionState InteractionState;
 
+	UPROPERTY(BlueprintReadOnly)
+	ETriggerState TriggerState;
+
 	UFUNCTION()
 	void OnBeginOverlap(AActor* OverlappedActor, AActor* OtherActor);
 
@@ -98,6 +108,12 @@ private:
 
 	// Sets relevant private variables for door to function per UPROPERTY settings.
 	void InitializeDoor();
+
+	void AddTriggerBoxCallbacks();
+
+	void AddPlayerControllerCallbacks();
+
+	void OnInteract();
 
 	// Calulates the angle in +/-PI from actor root location to Pawn eye height.
 	// The actor starting position offset is used to ensure the X 0 coordinate line

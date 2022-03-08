@@ -2,6 +2,7 @@
 
 
 #include "DoorInteractionComponent.h"
+#include <AbstractionPlayerController.h>
 #include <GameFramework/Actor.h>
 #include <GameFramework/PlayerController.h>
 #include <Engine/TriggerBox.h>
@@ -32,12 +33,8 @@ void UDoorInteractionComponent::BeginPlay()
 	Super::BeginPlay();
 
 	InitializeDoor();
-
-	if (TriggerBox)
-	{
-		TriggerBox->OnActorBeginOverlap.AddDynamic(this, &UDoorInteractionComponent::OnBeginOverlap);
-		TriggerBox->OnActorEndOverlap.AddDynamic(this, &UDoorInteractionComponent::OnEndOverlap);
-	}
+	AddTriggerBoxCallbacks();
+	AddPlayerControllerCallbacks();
 }
 
 // Called every frame
@@ -89,9 +86,8 @@ void UDoorInteractionComponent::OnBeginOverlap(AActor* OverlappedActor, AActor* 
 		APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
 		if (OverlappedActor && OtherActor != TriggerBox && PlayerPawn && OtherActor == PlayerPawn)
 		{
-			InteractionState = EInteractionState::IS_Valid;
-
-			// Replace with widget
+			TriggerState = ETriggerState::TS_Inside;
+			// Add widget
 			FLocalCoor RelativeCoor = LocalAngleToPawn(PlayerPawn);
 			float OffsetY, OffsetX;
 			RelativeCoor.mYDelta > 0 ? OffsetY = FLT_METERS(0.2f) : OffsetY = FLT_METERS(-0.2f);
@@ -110,7 +106,7 @@ void UDoorInteractionComponent::OnEndOverlap(AActor* OverlappedActor, AActor* Ot
 		if (OverlappedActor && OtherActor != TriggerBox && PlayerPawn && OtherActor == PlayerPawn)
 		{
 			InteractionState = EInteractionState::IS_Invalid;
-
+			TriggerState = ETriggerState::TS_Outside;
 			// Remove widget if exists
 		}
 	}
@@ -120,6 +116,7 @@ void UDoorInteractionComponent::InitializeDoor()
 {
 	// Assumed door is shut at creation
 	InteractionState = EInteractionState::IS_Invalid;
+	TriggerState = ETriggerState::TS_Outside;;
 	DoorState = EDoorState::DS_Closed;
 	ClosedDoor = GetOwner()->GetActorRotation();
 	ForwardEndRotation = ClosedDoor + DesiredRotation;
@@ -134,6 +131,52 @@ void UDoorInteractionComponent::InitializeDoor()
 		UE_LOG(LogTemp, Warning, TEXT("ForwardEndRotation: %s"), *ForwardEndRotation.ToString());
 		UE_LOG(LogTemp, Warning, TEXT("BackwardEndRotation: %s"), *BackwardEndRotation.ToString());
 		UE_LOG(LogTemp, Warning, TEXT("StartFacingAngle: %f"), FMath::RadiansToDegrees(ActorFacingAngleOffset));
+	}
+}
+
+void UDoorInteractionComponent::AddTriggerBoxCallbacks()
+{
+	if (TriggerBox)
+	{
+		TriggerBox->OnActorBeginOverlap.AddDynamic(this, &UDoorInteractionComponent::OnBeginOverlap);
+		TriggerBox->OnActorEndOverlap.AddDynamic(this, &UDoorInteractionComponent::OnEndOverlap);
+	}
+}
+
+void UDoorInteractionComponent::AddPlayerControllerCallbacks()
+{
+	if (GetWorld())
+	{
+		AAbstractionPlayerController* APC = dynamic_cast<AAbstractionPlayerController*>(GetWorld()->GetFirstPlayerController());
+		if (APC)
+		{
+			APC->InteractEvent.AddUObject(this, &UDoorInteractionComponent::OnInteract);
+		}
+	}
+}
+
+void UDoorInteractionComponent::OnInteract()
+{
+	if (TriggerState == ETriggerState::TS_Inside)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, TEXT("On Interact Inside"));
+		switch (InteractionState)
+		{
+		case EInteractionState::IS_Invalid:
+			InteractionState = EInteractionState::IS_Valid;
+			break;
+		case EInteractionState::IS_Valid:
+			InteractionState = EInteractionState::IS_Invalid;
+			break;
+		default:
+			InteractionState = EInteractionState::IS_Invalid;
+		}
+		FString EnumAsString = TEXT("Interaction State: ") + UEnum::GetDisplayValueAsText(InteractionState).ToString();
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, EnumAsString);
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, TEXT("On Interact OutSide"));
 	}
 }
 
