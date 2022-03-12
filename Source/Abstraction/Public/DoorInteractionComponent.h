@@ -61,6 +61,10 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
+	DECLARE_EVENT(FDoorInteractiveComponent, FOpened)
+	FOpened& OnOpened() { return OpenedEvent; }
+	FOpened OpenedEvent;
+
 	static void OnDebugToggled(IConsoleVariable* var);
 
 protected:
@@ -106,11 +110,9 @@ private:
 
 	// Sets relevant private variables for door to function per UPROPERTY settings.
 	void InitializeDoor();
-
 	void AddTriggerBoxCallbacks();
-
 	void AddPlayerControllerCallbacks();
-
+	void AddObjectiveCallbacks();
 	void OnInteract();
 
 	// Calulates the angle in +/-PI from actor root location to Pawn eye height.
@@ -125,17 +127,20 @@ private:
 	// 2. Closed Door
 	// 3. Open Door Backward
 	// The end rotation on triggering will always be towards the closest end state
-	// unless if is within 5 degrees of that state already.
+	// unless it is within 5 degrees of that state already.
 	// @param OpenForward A bool indicating the direction the door will move.
-	// The actor's start facing angle is used as the reference of 0 deg
+	// The owning actor's start facing angle is used as the reference of 0 deg
 	void DetermineStartEndRotation(const bool OpenForward);
 
 	// Rotates the door and returns true if actively rotating door
+	// Otherwise return false.
+	// @param DeltaTime Time used to interpolate the new position
+	// the door should be set to.
 	bool RotateDoor(const float DeltaTime);
 
+	// FSM of the Door State
 	void DetermineDoorState(bool ActivelyRotatingDoor);
-
-	void DebugDraw();
+	void DebugDrawState();
 
 	float ActorFacingAngleOffset;
 	FRotator ForwardEndRotation;

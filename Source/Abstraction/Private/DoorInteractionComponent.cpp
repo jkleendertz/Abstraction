@@ -7,6 +7,7 @@
 #include <GameFramework/PlayerController.h>
 #include <Engine/TriggerBox.h>
 #include <Engine/World.h>
+#include <ObjectiveWorldSubsystem.h>
 
 #include <DrawDebugHelpers.h>
 
@@ -35,6 +36,7 @@ void UDoorInteractionComponent::BeginPlay()
 	InitializeDoor();
 	AddTriggerBoxCallbacks();
 	AddPlayerControllerCallbacks();
+	AddObjectiveCallbacks();
 }
 
 // Called every frame
@@ -71,7 +73,7 @@ void UDoorInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 	{
 		DoorDirectionCheck = true;
 	}
-	DebugDraw();
+	DebugDrawState();
 }
 
 void UDoorInteractionComponent::OnDebugToggled(IConsoleVariable* var)
@@ -152,6 +154,18 @@ void UDoorInteractionComponent::AddPlayerControllerCallbacks()
 		if (APC)
 		{
 			APC->InteractEvent.AddUObject(this, &UDoorInteractionComponent::OnInteract);
+		}
+	}
+}
+
+void UDoorInteractionComponent::AddObjectiveCallbacks()
+{
+	if (GetWorld())
+	{
+		UObjectiveWorldSubsystem* ObjectiveWorldSubsystem = GetWorld()->GetSubsystem<UObjectiveWorldSubsystem>();
+		if (ObjectiveWorldSubsystem)
+		{
+			OpenedEvent.AddUObject(ObjectiveWorldSubsystem, &UObjectiveWorldSubsystem::OnObjectiveCompleted);
 		}
 	}
 }
@@ -274,10 +288,12 @@ void UDoorInteractionComponent::DetermineDoorState(bool ActivelyRotatingDoor)
 		else if (CurrentRotation.Equals(ForwardEndRotation, 5.0f))
 		{
 			DoorState = EDoorState::DS_Open_Forward;
+			OpenedEvent.Broadcast();
 		}
 		else
 		{
 			DoorState = EDoorState::DS_OpenBackward;
+			OpenedEvent.Broadcast();
 		}
 	}
 	else if (DoorState != EDoorState::DS_Moving)
@@ -286,7 +302,7 @@ void UDoorInteractionComponent::DetermineDoorState(bool ActivelyRotatingDoor)
 	}
 }
 
-void UDoorInteractionComponent::DebugDraw()
+void UDoorInteractionComponent::DebugDrawState()
 {
 	if (CVarToggleDebugDoor->GetBool())
 	{
