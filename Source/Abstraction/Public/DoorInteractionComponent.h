@@ -61,10 +61,6 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	DECLARE_EVENT(FDoorInteractiveComponent, FOpened)
-	FOpened& OnOpened() { return OpenedEvent; }
-	FOpened OpenedEvent;
-
 	static void OnDebugToggled(IConsoleVariable* var);
 
 protected:
@@ -112,8 +108,10 @@ private:
 	void InitializeDoor();
 	void AddTriggerBoxCallbacks();
 	void AddPlayerControllerCallbacks();
-	void AddObjectiveCallbacks();
 	void OnInteract();
+
+	// Trigger objectives if component attached.
+	void OnDoorOpened();
 
 	// Calulates the angle in +/-PI from actor root location to Pawn eye height.
 	// The actor starting position offset is used to ensure the X 0 coordinate line

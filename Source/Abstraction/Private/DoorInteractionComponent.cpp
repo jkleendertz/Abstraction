@@ -36,7 +36,6 @@ void UDoorInteractionComponent::BeginPlay()
 	InitializeDoor();
 	AddTriggerBoxCallbacks();
 	AddPlayerControllerCallbacks();
-	AddObjectiveCallbacks();
 }
 
 // Called every frame
@@ -158,18 +157,6 @@ void UDoorInteractionComponent::AddPlayerControllerCallbacks()
 	}
 }
 
-void UDoorInteractionComponent::AddObjectiveCallbacks()
-{
-	if (GetWorld())
-	{
-		UObjectiveWorldSubsystem* ObjectiveWorldSubsystem = GetWorld()->GetSubsystem<UObjectiveWorldSubsystem>();
-		if (ObjectiveWorldSubsystem)
-		{
-			OpenedEvent.AddUObject(ObjectiveWorldSubsystem, &UObjectiveWorldSubsystem::OnObjectiveCompleted);
-		}
-	}
-}
-
 void UDoorInteractionComponent::OnInteract()
 {
 	if (TriggerState == ETriggerState::TS_Inside)
@@ -187,6 +174,15 @@ void UDoorInteractionComponent::OnInteract()
 		}
 		FString EnumAsString = TEXT("Interaction State: ") + UEnum::GetDisplayValueAsText(InteractionState).ToString();
 		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, EnumAsString);
+	}
+}
+
+void UDoorInteractionComponent::OnDoorOpened()
+{
+	UObjectiveComponent* ObjectiveComponent = GetOwner()->FindComponentByClass<UObjectiveComponent>();
+	if (ObjectiveComponent && ObjectiveComponent->GetState() == EObjectiveState::OS_Active)
+	{
+		ObjectiveComponent->SetState(EObjectiveState::OS_Completed);
 	}
 }
 
@@ -288,12 +284,12 @@ void UDoorInteractionComponent::DetermineDoorState(bool ActivelyRotatingDoor)
 		else if (CurrentRotation.Equals(ForwardEndRotation, 5.0f))
 		{
 			DoorState = EDoorState::DS_Open_Forward;
-			OpenedEvent.Broadcast();
+			OnDoorOpened();
 		}
 		else
 		{
 			DoorState = EDoorState::DS_OpenBackward;
-			OpenedEvent.Broadcast();
+			OnDoorOpened();
 		}
 	}
 	else if (DoorState != EDoorState::DS_Moving)
