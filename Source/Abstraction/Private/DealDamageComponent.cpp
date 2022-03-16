@@ -48,7 +48,10 @@ void UDealDamageComponent::OnOverlapBegin(UPrimitiveComponent* OverlappedCompone
 
 void UDealDamageComponent::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-
+	if (Debug)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("End Overlap Deal Damage Component"));
+	}
 }
 
 void UDealDamageComponent::AddTriggerBoxCallbacks()
