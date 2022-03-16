@@ -33,4 +33,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, NoClear)
 	UParticleSystemComponent* ParticleSystemComponent;
+
+	UPROPERTY(EditAnywhere)
+	float ToggleTime = 5.0f;
+
+private:
+	float CurrentTimer = 0.0f;
 };

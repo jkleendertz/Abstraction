@@ -15,6 +15,7 @@ UDealDamageComponent::UDealDamageComponent()
 	{
 		TriggerCapsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Trigger Capsule"));
 	}
+
 }
 
 
@@ -28,7 +29,7 @@ void UDealDamageComponent::BeginPlay()
 
 void UDealDamageComponent::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor == GetOwner())
+	if (!IsActive() || OtherActor == GetOwner())
 	{
 		return;
 	}
