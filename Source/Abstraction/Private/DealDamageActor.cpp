@@ -42,7 +42,7 @@ void ADealDamageActor::Tick(float DeltaTime)
 		CurrentTimer += DeltaTime;
 		if (CurrentTimer >= ToggleTime)
 		{
-			DealDamageComponent->SetActive(!DealDamageComponent->IsActive());
+			DealDamageComponent->ToggleActive();
 			if (ParticleSystemComponent)
 			{
 				ParticleSystemComponent->ToggleActive();
