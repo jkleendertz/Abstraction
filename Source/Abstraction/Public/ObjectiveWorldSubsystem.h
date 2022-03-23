@@ -26,6 +26,9 @@ public:
 	FString GetCurrentObjectiveDescription();
 
 	UFUNCTION(BlueprintCallable)
+	UObjectiveComponent* GetCurrentObjective();
+
+	UFUNCTION(BlueprintCallable)
 	void AddObjective(UObjectiveComponent* ObjectiveComponent);
 
 	UFUNCTION(BlueprintCallable)
@@ -37,4 +40,6 @@ private:
 	UUserWidget* ObjectiveWidget = nullptr;
 
 	TArray<UObjectiveComponent*> Objectives;
+
+	int ObjectiveIndex = 0;
 };

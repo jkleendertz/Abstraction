@@ -32,12 +32,23 @@ FString UObjectiveWorldSubsystem::GetCurrentObjectiveDescription()
 		return TEXT("N/A");
 	}
 
-	FString RetObjective = Objectives[0]->GetDescription();
-	if (Objectives[0]->GetState() == EObjectiveState::OS_Completed)
+	FString RetObjective = Objectives[ObjectiveIndex]->GetDescription();
+	UE_LOG(LogTemp, Warning, TEXT("Objectives: %i Index: %i Current Objective Desc: %s"), Objectives.Num(), ObjectiveIndex , *RetObjective);
+	if (Objectives[ObjectiveIndex]->GetState() == EObjectiveState::OS_Completed)
 	{
+		if (Objectives.Num() > ObjectiveIndex)
+		{
+			ObjectiveIndex++;
+			UE_LOG(LogTemp, Warning, TEXT("Objective Incremented 1"));
+		}
 		return RetObjective += TEXT(" Completed");
 	}
 	return RetObjective;
+}
+
+UObjectiveComponent* UObjectiveWorldSubsystem::GetCurrentObjective()
+{
+	return Objectives[ObjectiveIndex];
 }
 
 void UObjectiveWorldSubsystem::AddObjective(UObjectiveComponent* ObjectiveComponent)

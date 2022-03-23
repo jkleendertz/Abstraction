@@ -7,7 +7,7 @@
 #include "ObjectiveComponent.generated.h"
 
 UENUM()
-enum class EObjectiveState
+enum class EObjectiveState : uint8
 {
 	OS_Inactive = 0		UMETA(DisplayName = "Inactive"),
 	OS_Active  = 1		UMETA(DisplayName = "Active"),
@@ -32,6 +32,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	EObjectiveState GetState() const { return State; }
 
+	UFUNCTION(BlueprintCallable)
 	void SetState(EObjectiveState NewState);
 
 protected:
