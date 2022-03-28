@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include <Blueprint/UserWidget.h>
+#include "ObjectiveWidget.h"
 #include "GameFramework/GameModeBase.h"
 #include "AbstractionGameModeBase.generated.h"
 
@@ -18,5 +19,5 @@ public:
 	void StartPlay() override;
 
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UUserWidget> ObjectiveWidgetClass;
+	TSubclassOf<UObjectiveWidget> ObjectiveWidgetClass;
 };

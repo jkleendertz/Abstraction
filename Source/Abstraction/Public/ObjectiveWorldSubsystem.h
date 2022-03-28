@@ -7,6 +7,7 @@
 #include <Blueprint/UserWidget.h>
 #include <GameFramework/GameModeBase.h>
 #include "ObjectiveComponent.h"
+#include "ObjectiveWidget.h"
 #include "ObjectiveWorldSubsystem.generated.h"
 
 /**
@@ -17,7 +18,7 @@ class ABSTRACTION_API UObjectiveWorldSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
 public:
-	void CreateObjectiveWidget(TSubclassOf<UUserWidget> ObjectiveWidgetClass);
+	void CreateObjectiveWidget(TSubclassOf<UObjectiveWidget> ObjectiveWidgetClass);
 	void DisplayObjectiveWidget();
 
 	void OnObjectiveCompleted();
@@ -37,7 +38,7 @@ public:
 	void OnObjectiveStateChanged(UObjectiveComponent* ObjectiveComponent, EObjectiveState ObjectiveState);
 
 private:
-	UUserWidget* ObjectiveWidget = nullptr;
+	UObjectiveWidget* ObjectiveWidget = nullptr;
 
 	TArray<UObjectiveComponent*> Objectives;
 

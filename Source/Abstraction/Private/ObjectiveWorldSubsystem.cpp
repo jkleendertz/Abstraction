@@ -4,19 +4,22 @@
 #include "ObjectiveWorldSubsystem.h"
 #include <Kismet/GameplayStatics.h>
 
-void UObjectiveWorldSubsystem::CreateObjectiveWidget(TSubclassOf<UUserWidget> ObjectiveWidgetClass)
+void UObjectiveWorldSubsystem::CreateObjectiveWidget(TSubclassOf<UObjectiveWidget> ObjectiveWidgetClass)
 {
 	if (ObjectiveWidget == nullptr)
 	{
 		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-		ObjectiveWidget = CreateWidget<UUserWidget>(PlayerController, ObjectiveWidgetClass);
+		ObjectiveWidget = CreateWidget<UObjectiveWidget>(PlayerController, ObjectiveWidgetClass);
 	}
 }
 
 void UObjectiveWorldSubsystem::DisplayObjectiveWidget()
 {
-	ensureMsgf(ObjectiveWidget, TEXT("UObjectiveWorldSubsystem::DisplayObjectiveWidget ObjectiveWidget is nullptr"));
-	ObjectiveWidget->AddToViewport();
+	if(ObjectiveWidget)
+	{ 
+		ObjectiveWidget->UpdateObjectivetext(FText::FromString(GetCurrentObjectiveDescription()));
+		ObjectiveWidget->AddToViewport();
+	}
 }
 
 void UObjectiveWorldSubsystem::OnObjectiveCompleted()
@@ -26,7 +29,6 @@ void UObjectiveWorldSubsystem::OnObjectiveCompleted()
 
 FString UObjectiveWorldSubsystem::GetCurrentObjectiveDescription()
 {
-
 	if (Objectives.Num() == 0)
 	{
 		return TEXT("N/A");
@@ -60,7 +62,7 @@ void UObjectiveWorldSubsystem::AddObjective(UObjectiveComponent* ObjectiveCompon
 	if (Objectives.Num() > PrevSize)
 	{
 		ObjectiveComponent->OnStateChanged().AddUObject(this, &UObjectiveWorldSubsystem::OnObjectiveStateChanged);
-	}
+	}	
 }
 
 void UObjectiveWorldSubsystem::RemoveObjective(UObjectiveComponent* ObjectiveComponent)
