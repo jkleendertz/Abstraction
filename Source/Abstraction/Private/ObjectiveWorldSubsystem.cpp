@@ -18,7 +18,10 @@ void UObjectiveWorldSubsystem::DisplayObjectiveWidget()
 	if(ObjectiveWidget)
 	{ 
 		ObjectiveWidget->UpdateObjectivetext(FText::FromString(GetCurrentObjectiveDescription()));
-		ObjectiveWidget->AddToViewport();
+		if (!ObjectiveWidget->IsInViewport())
+		{
+			ObjectiveWidget->AddToViewport();
+		}
 	}
 }
 
