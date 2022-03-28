@@ -2,6 +2,7 @@
 
 
 #include "AbstractionPlayerController.h"
+#include "AbstractionCharacter.h"
 
 AAbstractionPlayerController::AAbstractionPlayerController(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
